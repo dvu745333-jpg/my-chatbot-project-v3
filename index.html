@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chatbot V21.1 - Bộ Não Đa Năng</title>
+    <style>
+        /* CSS (Giữ nguyên) */
+        body { font-family: sans-serif; margin: 0; padding: 0; background-color: #f2f2f2; }
+        #chat-container { width: 100%; max-width: 600px; margin: 0 auto; background-color: white; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); display: flex; flex-direction: column; height: 100vh; }
+        #header { 
+            background-color: #007bff; 
+            color: white; 
+            padding: 15px; 
+            font-size: 1.1em; 
+            font-weight: bold; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+        }
+        .reset-btn { 
+            background-color: #f44336; 
+            border: none; 
+            color: white; 
+            padding: 5px 8px; 
+            border-radius: 12px; 
+            cursor: pointer; 
+            font-size: 0.75em; 
+            margin-left: 10px; 
+            line-height: 1; 
+        }
+        .reset-btn:hover { background-color: #d32f2f; }
+
+        #chat-window { flex-grow: 1; padding: 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+        .message { padding: 8px 12px; border-radius: 15px; max-width: 80%; line-height: 1.4; word-wrap: break-word; font-size: 0.95em; }
+        .user-message { background-color: #007bff; color: white; align-self: flex-end; border-top-right-radius: 5px; }
+        .bot-message { background-color: #e6e6e6; color: #333; align-self: flex-start; border-top-left-radius: 5px; }
+        .error-message { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; padding: 15px; border-radius: 5px; font-weight: bold; }
+        .loading-message { background-color: #fff3cd; color: #856404; font-style: italic; }
+        #input-container { display: flex; padding: 10px; border-top: 1px solid #ccc; }
+        #user-input { flex-grow: 1; padding: 10px; border: 1px solid #ccc; border-radius: 20px; margin-right: 10px; font-size: 1em; }
+        button { background-color: #28a745; color: white; border: none; padding: 10px 15px; border-radius: 20px; cursor: pointer; font-size: 1em; }
+        button:hover { background-color: #218838; }
+        .keyword-list { list-style-type: disc; padding-left: 20px; margin-top: 5px; }
+        .keyword-list li { padding: 2px 0; font-size: 0.9em; }
+        mjx-container { vertical-align: middle !important; }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script" async></script>
+</head>
+<body>
+    <div id="chat-container">
+        <div id="header">
+            🤖 Chatbot V21.1 - Bộ Não Đa Năng 
+            <button class="reset-btn" onclick="clearHistoryAndReload()">Xóa Lịch Sử Chat</button>
+        </div>
+        <div id="chat-window">
+            </div>
+        <div id="input-container">
+            <input type="text" id="user-input" placeholder="Nhập câu hỏi (!HOC, !XEM, !DANHGON)">
+            <button onclick="sendMessage()">Gửi</button>
+        </div>
+    </div>
+
+<script>
+    // ======================================================================
+    // I. KHỐI DỮ LIỆU KIẾN THỨC JSON (PHẦN A - CỐT LÕI)
+    // ======================================================================
+    let knowledgeData = {}; 
+    let currentKnowledge = null; 
+
+    // SỬ DỤNG DẤU NHÁY KÉP " " CHUẨN JSON ĐỂ KHẮC PHỤC LỖI CÚ PHÁP
+    const CORE_KNOWLEDGE_JSON = `{
+        "vn_animal": "Con vật biểu tượng của Việt Nam thường là Rồng hoặc Lạc Việt.",
+        "nguoi_tao_ra_ban_la_ai": "Tôi được lập trình và tạo ra dựa trên kiến thức JavaScript/HTML.",
+        "chao": "👋 Chào bạn! Tôi có thể giúp gì cho bạn hôm nay? Hãy nhập từ khóa hoặc dùng lệnh **!HOC**.",
+        "hello": "👋 Hello! How can I help you today? Please enter a keyword or use the **!HOC** command.",
+        "cam_on": "😊 Rất vui được phục vụ! Nếu có bất kỳ câu hỏi nào, cứ hỏi tôi nhé.",
+        "thank_you": "😊 You're very welcome! If you have any questions, just ask.",
+        "ten_ban_la_gi": "🤖 Tôi là Chatbot V21.1, được tạo ra để giúp bạn học và quản lý kiến thức riêng.",
+        "thu_do_viet_nam": "Thủ đô của Việt Nam là Hà Nội.",
+        "cong_thuc_nuoc": "Công thức hóa học của nước là $H_2O$.",
+        "nha_bac_hoc_noi_tieng": "Albert Einstein là một trong những nhà khoa học vĩ đại nhất, nổi tiếng với Thuyết tương đối.",
+        "bitcoin_la_gi": "Bitcoin là loại tiền mã hóa phi tập trung đầu tiên, được tạo ra vào năm 2009.",
+        "loi_ich_cua_javascript": "JavaScript là ngôn ngữ lập trình giúp tạo ra các trang web tương tác và hoạt động trên cả Front-end và Back-end."
+    }`;
+
+
+    // ======================================================================
+    // II. CÁC HÀM TIỆN ÍCH VÀ LƯU TRỮ (LOCAL STORAGE)
+    // ======================================================================
+    const STORAGE_KEY_CHAT = 'chatbot_chat_history';
+    const STORAGE_KEY_KNOWLEDGE = 'chatbot_knowledge_data';
+    const IGNORE_WORDS = ['la', 'la_gi', 'cua', 'va', 'mot', 'trong', 'duoc', 'co', 'voi', 'toi', 'ban'];
+
+    // Hàm loại bỏ dấu tiếng Việt và chuẩn hóa chuỗi
+    function normalizeString(str) {
+        if (!str) return '';
+        return str.toLowerCase()
+                  .normalize("NFD") 
+                  .replace(/[\u0300-\u036f]/g, "") 
+                  .replace(/đ/g, "d") 
+                  .replace(/[^a-z0-9_ ]/g, "") 
+                  .trim()
+                  .replace(/\s+/g, "_"); 
+    }
+
+    function saveState() {
+        const chatWindow = document.getElementById('chat-window');
+        const chatContent = chatWindow.innerHTML;
+        localStorage.setItem(STORAGE_KEY_CHAT, chatContent);
+        localStorage.setItem(STORAGE_KEY_KNOWLEDGE, JSON.stringify(knowledgeData));
+    }
+    
+    function clearHistoryAndReload() {
+        if (confirm("Bạn có chắc chắn muốn xóa TOÀN BỘ lịch sử trò chuyện không? (Kiến thức đã học qua lệnh !HOC sẽ được giữ lại)")) {
+            localStorage.removeItem(STORAGE_KEY_CHAT); 
+            location.reload(); 
+        }
+    }
+
+    async function loadChatbotData() {
+        try {
+            // 1. Tải kiến thức cốt lõi (từ biến JavaScript)
+            let currentKnowledgeData = JSON.parse(CORE_KNOWLEDGE_JSON);
+            
+            // 2. Tải kiến thức mở rộng từ knowledge.json (Async)
+            let loadingMessage = appendMessage("Đang tải kiến thức từ file knowledge.json...", 'bot', true, 'loading-message');
+            
+            try {
+                const response = await fetch('knowledge.json');
+                if (!response.ok) {
+                     throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const text = await response.text();
+                
+                const cleanedText = text.startsWith('\ufeff') ? text.substring(1) : text;
+                
+                const externalKnowledge = JSON.parse(cleanedText);
+                
+                currentKnowledgeData = { ...currentKnowledgeData, ...externalKnowledge };
+                
+                loadingMessage.className = 'message bot-message';
+                loadingMessage.innerHTML = '✅ **Tải kiến thức thành công!** (Đã hợp nhất từ file knowledge.json).';
+                
+            } catch (fetchError) {
+                loadingMessage.className = 'message bot-message error-message';
+                loadingMessage.innerHTML = `⚠️ **Lỗi:** Không thể tải hoặc phân tích file **knowledge.json**. Vui lòng kiểm tra file đã tồn tại và đúng định dạng JSON chưa. (Sử dụng kiến thức gốc).`;
+            }
+
+            // 3. Tải kiến thức đã lưu trữ (Local Storage - ưu tiên cao nhất)
+            const storedKnowledge = localStorage.getItem(STORAGE_KEY_KNOWLEDGE);
+            if (storedKnowledge) {
+                currentKnowledgeData = { ...currentKnowledgeData, ...JSON.parse(storedKnowledge) };
+            }
+
+            knowledgeData = currentKnowledgeData;
+            
+            // 4. Tải lịch sử chat
+            const storedChat = localStorage.getItem(STORAGE_KEY_CHAT);
+            const chatWindow = document.getElementById('chat-window');
+            if (storedChat) {
+                chatWindow.innerHTML = storedChat;
+            } else {
+                appendMessage(knowledgeData['chao'] || knowledgeData['hello'], 'bot');
+            }
+            
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+            
+        } catch (error) {
+            console.error("Lỗi tải dữ liệu JSON cốt lõi:", error);
+            appendMessage(`⚠️ **Lỗi nghiêm trọng:** Không thể tải dữ liệu kiến thức JSON cốt lõi. Vui lòng kiểm tra lại cú pháp JSON trong biến \`CORE_KNOWLEDGE_JSON\`. (Lỗi: ${error.message})`, 'bot', true, 'error-message');
+        }
+    }
+
+
+    // ======================================================================
+    // III. CORE CHAT FUNCTIONS
+    // ======================================================================
+
+    function appendMessage(text, sender, skipSave = false, additionalClass = '') {
+        const chatWindow = document.getElementById('chat-window');
+        const messageDiv = document.createElement('div');
+        
+        messageDiv.className = `message ${sender}-message ${additionalClass}`;
+        messageDiv.innerHTML = text; 
+        
+        chatWindow.appendChild(messageDiv);
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+        
+        if (sender === 'bot') {
+            if (text.includes('💡 [PHẢN HỒI KIẾN THỨC]')) {
+                currentKnowledge = text.replace('💡 [PHẢN HỒI KIẾN THỨC] ', '');
+            } else {
+                currentKnowledge = null; 
+            }
+        } 
+        
+        if (!skipSave) {
+            saveState();
+        }
+        
+        if (typeof MathJax !== 'undefined') {
+            MathJax.typeset([messageDiv]);
+        }
+
+        return messageDiv;
+    }
+
+    // HÀM GỌI API BÊN NGOÀI (PHƯƠNG ÁN 1)
+    async function getNewQuote() {
+        try {
+            // Đây là một API công cộng, không cần Key
+            const response = await fetch('https://api.quotable.io/random'); 
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const data = await response.json(); 
+            const quote = data.content;
+            const author = data.author;
+
+            return `📚 **Danh ngôn ngẫu nhiên (Từ Internet):** "${quote}" - *${author}*`;
+        } catch (error) {
+            console.error("Lỗi khi gọi API danh ngôn:", error);
+            // Lỗi này thường xảy ra do quy tắc CORS khi chạy file cục bộ
+            return `⚠️ **LỖI KẾT NỐI INTERNET:** Không thể tải danh ngôn. Khi chạy file trực tiếp trên máy, bạn có thể bị chặn bởi lỗi bảo mật (CORS). (Lỗi: ${error.message})`;
+        }
+    }
+
+
+    // HÀM TÌM KIẾM CÓ ĐỘ ƯU TIÊN THẤP HƠN (PHƯƠNG ÁN 2 - LINH HOẠT)
+    function findFlexibleKnowledge(query) {
+        const normalizedQuery = normalizeString(query); 
+        
+        // 1. Kiểm tra chính xác Key (Ưu tiên cao nhất)
+        if (knowledgeData.hasOwnProperty(normalizedQuery)) {
+            return knowledgeData[normalizedQuery];
+        }
+        
+        // 2. Tìm kiếm bằng Từ khóa Quan trọng 
+        const words = normalizedQuery.split('_').filter(word => word.length > 1 && !IGNORE_WORDS.includes(word));
+        
+        for (let i = 0; i < words.length; i++) {
+            if (knowledgeData.hasOwnProperty(words[i])) {
+                return knowledgeData[words[i]];
+            }
+            if (i < words.length - 1) {
+                const twoWordsKey = `${words[i]}_${words[i+1]}`;
+                if (knowledgeData.hasOwnProperty(twoWordsKey)) {
+                    return knowledgeData[twoWordsKey];
+                }
+            }
+            if (i < words.length - 2) {
+                const threeWordsKey = `${words[i]}_${words[i+1]}_${words[i+2]}`;
+                if (knowledgeData.hasOwnProperty(threeWordsKey)) {
+                    return knowledgeData[threeWordsKey];
+                }
+            }
+        }
+        
+        // 3. Tìm kiếm bằng từ khóa có chứa 
+        const keys = Object.keys(knowledgeData);
+        for (const key of keys) {
+            if (key.includes(normalizedQuery) || normalizedQuery.includes(key)) {
+                return knowledgeData[key];
+            }
+        }
+
+        return null;
+    }
+
+
+    function handleLearnCommand(input) {
+        const learnRegex = /!hoc\s+([^=]+)\s*=\s*(.+)/i;
+        const match = input.match(learnRegex);
+
+        if (match) {
+            const userKey = match[1].trim(); 
+            const key = normalizeString(userKey); 
+            const value = match[2].trim();
+
+            if (userKey.length < 2 || value.length < 5) {
+                return "⚠️ **Lỗi:** Từ khóa phải có ít nhất 2 ký tự và Nội dung phải có ít nhất 5 ký tự để học.";
+            }
+
+            if (knowledgeData.hasOwnProperty(key)) {
+                return `⚠️ **Lỗi:** Từ khóa \`${userKey}\` (Chuẩn hóa thành: \`${key}\`) đã tồn tại. Dùng lệnh **!SUA ${userKey}=Nội dung mới** để chỉnh sửa.`;
+            }
+
+            knowledgeData[key] = value;
+            saveState(); // Lưu lại kiến thức mới
+            return `✨ **Đã học thành công!** Từ khóa \`${userKey}\` (Key chuẩn: \`${key}\`) đã được lưu VĨNH VIỄN (Local Storage) với nội dung: "${value.substring(0, 50)}..."`;
+        } else {
+            return "⚠️ **Lỗi cú pháp:** Cú pháp học là **!HOC Từ khóa=Nội dung kiến thức** (Ví dụ: !HOC Mèo=Mèo là loài động vật nhỏ bé, dễ thương).";
+        }
+    }
+
+    function handleEditCommand(input) {
+        const editRegex = /!sua\s+([^=]+)\s*=\s*(.+)/i;
+        const match = input.match(editRegex);
+
+        if (match) {
+            const userKey = match[1].trim();
+            const key = normalizeString(userKey);
+            const value = match[2].trim();
+
+            if (!knowledgeData.hasOwnProperty(key)) {
+                return `⚠️ **Lỗi:** Không tìm thấy từ khóa \`${userKey}\` (Key chuẩn: \`${key}\`) để sửa. Vui lòng kiểm tra lại.`;
+            }
+
+            knowledgeData[key] = value;
+            saveState(); // Lưu lại thay đổi
+            return `✅ **Đã sửa thành công và lưu VĨNH VIỄN!** Nội dung mới của từ khóa \`${userKey}\` (Key chuẩn: \`${key}\`) là: "${value.substring(0, 50)}..."`;
+        } else {
+            return "⚠️ **Lỗi cú pháp:** Cú pháp sửa là **!SUA Từ khóa=Nội dung mới** (Ví dụ: !SUA Mèo=Mèo là động vật nhỏ thích ngủ).";
+        }
+    }
+    
+    function handleDeleteCommand(input) {
+        const deleteRegex = /!xoa\s+(.+)/i;
+        const match = input.match(deleteRegex);
+
+        if (match) {
+            const userKey = match[1].trim();
+            const key = normalizeString(userKey);
+
+            if (key === 'all') {
+                if (confirm("Bạn có chắc chắn muốn xóa TOÀN BỘ kiến thức đã học và lịch sử chat không?")) {
+                    localStorage.removeItem(STORAGE_KEY_CHAT);
+                    localStorage.removeItem(STORAGE_KEY_KNOWLEDGE);
+                    location.reload();
+                    return 'Đã xóa toàn bộ lịch sử và kiến thức đã học.'; 
+                }
+                return 'Hủy xóa.';
+            }
+            
+            if (knowledgeData.hasOwnProperty(key)) {
+                delete knowledgeData[key];
+                saveState(); // Lưu lại thay đổi
+                return `🗑️ **Đã xóa thành công và lưu VĨNH VIỄN!** Từ khóa \`${userKey}\` (Key chuẩn: \`${key}\`) đã bị loại bỏ.`;
+            } else {
+                return `⚠️ **Lỗi:** Không tìm thấy từ khóa \`${userKey}\` (Key chuẩn: \`${key}\`) để xóa.`;
+            }
+
+        } else {
+            return "⚠️ **Lỗi cú pháp:** Cú pháp xóa là **!XOA Từ khóa** (Ví dụ: !XOA Mèo) hoặc **!XOA ALL** để xóa hết (bao gồm kiến thức đã học).";
+        }
+    }
+
+    function handleViewCommand() {
+        const keys = Object.keys(knowledgeData).sort();
+        let listHtml = keys.length > 0 
+            ? keys.map(key => `<li>\`${key}\`</li>`).join('')
+            : 'Không có kiến thức nào trong bộ nhớ.';
+        
+        return `📖 **Danh sách ${keys.length} từ khóa hiện có (đã chuẩn hóa):**<ul class="keyword-list">${listHtml}</ul>`;
+    }
+    
+    function handleContextualQuery(input) {
+        const normalizedInput = input.trim().toLowerCase();
+        if ((normalizedInput === 'thế à' || normalizedInput === 'nói thêm' || normalizedInput === 'tiếp đi') && currentKnowledge) {
+            return `Tiếp tục chủ đề: ${currentKnowledge}`;
+        }
+        return null;
+    }
+
+    // Biến hàm processMessage thành ASYNC để gọi được await getNewQuote()
+    async function processMessage(input) {
+        const normalizedInput = input.trim();
+        
+        // 1. Kiểm tra các lệnh đặc biệt
+        if (normalizedInput.toUpperCase().startsWith('!HOC')) {
+            return handleLearnCommand(normalizedInput);
+        } else if (normalizedInput.toUpperCase().startsWith('!SUA')) {
+            return handleEditCommand(normalizedInput);
+        } else if (normalizedInput.toUpperCase().startsWith('!XOA')) {
+            return handleDeleteCommand(normalizedInput);
+        } else if (normalizedInput.toUpperCase() === '!XEM') {
+            return handleViewCommand();
+        } 
+        // Lệnh mới: Kết nối Internet
+        else if (normalizedInput.toUpperCase() === '!DANHGON') {
+            return await getNewQuote(); // DÙNG AWAIT ĐỂ CHỜ KẾT QUẢ TỪ INTERNET
+        }
+
+
+        // 2. Xử lý ngữ cảnh
+        const contextualResponse = handleContextualQuery(normalizedInput);
+        if (contextualResponse) {
+             return contextualResponse;
+        }
+
+        // 3. Tìm kiếm kiến thức bằng CÁCH LINH HOẠT (Phương án 2)
+        const knowledgeResponse = findFlexibleKnowledge(normalizedInput);
+        if (knowledgeResponse) {
+             return `💡 [PHẢN HỒI KIẾN THỨC] ${knowledgeResponse}`;
+        }
+        
+        // 4. Mặc định
+        return `Tôi không tìm thấy kiến thức về **${input}**. Vui lòng nhập **từ khóa** chính xác (hoặc thử biến thể không dấu) hoặc dùng lệnh **!HOC** để dạy tôi kiến thức này.`;
+    }
+
+
+    // Biến hàm sendMessage thành ASYNC
+    async function sendMessage() {
+        const inputField = document.getElementById('user-input');
+        const input = inputField.value.trim();
+
+        if (input === '') return;
+
+        const isContextual = input.trim().toLowerCase() === 'thế à' || input.trim().toLowerCase() === 'nói thêm' || input.trim().toLowerCase() === 'tiếp đi';
+        if (!isContextual) {
+            currentKnowledge = null; 
+        }
+
+        appendMessage(input, 'user', true);
+        inputField.value = '';
+
+        // Dùng AWAIT để chờ processMessage (vì nó gọi API)
+        const botResponse = await processMessage(input);
+        
+        setTimeout(() => {
+            appendMessage(botResponse, 'bot');
+        }, 100);
+    }
+    
+    document.getElementById('user-input').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            sendMessage();
+        }
+    });
+
+    window.onload = loadChatbotData;
+
+</script>
+</body>
+</html>
