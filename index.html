@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chatbot V22.0 - Phiên Bản Ổn Định</title>
+    <title>Chatbot V22.1 - Tiếng Việt</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f7f6; display: flex; flex-direction: column; height: 100vh; }
         .header { background-color: #007bff; color: white; padding: 15px; text-align: center; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
@@ -22,38 +22,38 @@
 
 <div class="header">
     🤖 Chatbot AI
-    <button onclick="resetChat()">Xóa Lịch Sử</button>
+    <button onclick="taiLaiTrang()">Xóa Lịch Sử</button>
 </div>
 
 <div id="chat-window"></div>
 
 <div id="input-area">
     <input type="text" id="user-input" placeholder="Nhập tin nhắn (!HOC, !DANHGON)...">
-    <button id="send-btn" onclick="sendMessage()">Gửi</button>
+    <button id="send-btn" onclick="guiTinNhan()">Gửi</button>
 </div>
 
 <script>
-    let knowledge = {};
+    let boNho = {}; // Đổi tên biến kiến thức thành "boNho"
 
     // 1. Tải kiến thức từ file knowledge.json
-    async function loadKnowledge() {
+    async function taiBoNhoFile() { // Đổi tên hàm thành "taiBoNhoFile"
         try {
-            const response = await fetch('knowledge.json');
-            if (!response.ok) throw new Error("Không tìm thấy file");
-            const data = await response.json();
-            knowledge = { ...knowledge, ...data };
-            console.log("Đã tải knowledge.json");
-        } catch (error) {
-            appendMessage(`⚠️ **Lưu ý:** Không tải được file 'knowledge.json'. Chatbot sẽ dùng kiến thức bạn dạy thủ công.`, 'bot error-msg');
+            const phanHoi = await fetch('knowledge.json'); // Đổi tên biến
+            if (!phanHoi.ok) throw new Error("Khong tim thay file");
+            const duLieu = await phanHoi.json(); // Đổi tên biến
+            boNho = { ...boNho, ...duLieu };
+            console.log("Da tai knowledge.json");
+        } catch (loi) { // Đổi tên biến
+            hienThiTinNhan(`⚠️ **Luu y:** Khong tai duoc file 'knowledge.json'. Bot se dung kien thuc ban day thu cong.`, 'bot error-msg');
         }
     }
 
     // 2. Tải kiến thức đã dạy (Local Storage)
-    function loadMemory() {
+    function taiBoNhoLocal() { // Đổi tên hàm
         for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (!key.startsWith('chat_history')) {
-                knowledge[key] = localStorage.getItem(key);
+            const khoa = localStorage.key(i); // Đổi tên biến
+            if (!khoa.startsWith('chat_history')) {
+                boNho[khoa] = localStorage.getItem(khoa);
             }
         }
     }
@@ -61,110 +61,108 @@
     // 3. Giao diện Chat
     const chatWindow = document.getElementById('chat-window');
     
-    function appendMessage(text, sender) {
+    function hienThiTinNhan(chuoi, nguoiGui) { // Đổi tên hàm
         const div = document.createElement('div');
-        div.className = `message ${sender}`;
-        // Xử lý xuống dòng và in đậm cơ bản
-        div.innerHTML = text.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+        div.className = `message ${nguoiGui}`;
+        div.innerHTML = chuoi.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
         chatWindow.appendChild(div);
         chatWindow.scrollTop = chatWindow.scrollHeight;
     }
 
     // 4. Xử lý Lệnh
-    async function handleCommand(input) {
-        const upperInput = input.toUpperCase();
+    async function xuLyLenh(dauVao) { // Đổi tên hàm
+        const lenhInHoa = dauVao.toUpperCase(); // Đổi tên biến
 
-        // Lệnh !DANHGON (Sử dụng API Mới ổn định hơn)
-        if (upperInput === '!DANHGON') {
-            appendMessage("⏳ Đang tải danh ngôn từ Internet...", 'bot');
+        // Lệnh !DANHGON
+        if (lenhInHoa === '!DANHGON') {
+            hienThiTinNhan("⏳ Dang tai danh ngon tu Internet...", 'bot');
             try {
-                const res = await fetch('https://dummyjson.com/quotes/random'); // API Mới, ổn định
-                const data = await res.json();
-                const quoteText = data.quote; 
-                const author = data.author; 
-                appendMessage(`💡 **Danh ngôn:**\n"${quoteText}"\n— *${author}*`, 'bot');
-            } catch (e) {
-                appendMessage(`❌ Lỗi kết nối: ${e.message}`, 'bot error-msg');
+                const res = await fetch('https://dummyjson.com/quotes/random');
+                const duLieu = await res.json();
+                const danhNgon = duLieu.quote; // Tiếng Anh bắt buộc từ API
+                const tacGia = duLieu.author; // Tiếng Anh bắt buộc từ API
+                hienThiTinNhan(`💡 **Danh ngon:**\n"${danhNgon}"\n— *${tacGia}*`, 'bot');
+            } catch (loi) {
+                hienThiTinNhan(`❌ Loi ket noi: ${loi.message}`, 'bot error-msg');
             }
             return true;
         }
 
         // Lệnh !HOC
-        if (upperInput.startsWith('!HOC')) {
-            const parts = input.substring(4).split('=');
-            if (parts.length < 2) {
-                appendMessage("⚠️ Sai cú pháp. Dùng: !HOC Câu hỏi = Câu trả lời", 'bot');
+        if (lenhInHoa.startsWith('!HOC')) {
+            const mangPhanChia = dauVao.substring(4).split('='); // Đổi tên biến
+            if (mangPhanChia.length < 2) {
+                hienThiTinNhan("⚠️ Sai cu phap. Dung: !HOC Cau hoi = Cau tra loi", 'bot');
                 return true;
             }
-            const key = parts[0].trim().toLowerCase();
-            const value = parts[1].trim();
-            localStorage.setItem(key, value); // Lưu vĩnh viễn
-            knowledge[key] = value;
-            appendMessage(`✅ Đã học: **"${key}"**`, 'bot');
+            const khoa = mangPhanChia[0].trim().toLowerCase();
+            const giaTri = mangPhanChia[1].trim();
+            localStorage.setItem(khoa, giaTri);
+            boNho[khoa] = giaTri;
+            hienThiTinNhan(`✅ Da hoc: **"${khoa}"**`, 'bot');
             return true;
         }
 
-        // Lệnh !JOKE (Kể chuyện cười)
-        if (upperInput === '!JOKE') {
-            appendMessage(`⏳ Đang tìm kiếm chuyện cười...`, 'bot');
+        // Lệnh !JOKE
+        if (lenhInHoa === '!JOKE') {
+            hienThiTinNhan(`⏳ Dang tim kiem chuyen cuoi...`, 'bot');
             try {
-                const response = await fetch('https://api.chucknorris.io/jokes/random');
-                const data = await response.json();
-                const jokeText = data.value; 
-                appendMessage(`😂 **CHUYỆN CƯỜI:**\n${jokeText}`, 'bot');
-            } catch (error) {
-                appendMessage(`**⚠️ LỖI KẾT NỐI:** Không thể kể chuyện cười. (Lỗi: ${error.message})`, 'bot');
+                const phanHoi = await fetch('https://api.chucknorris.io/jokes/random');
+                const duLieu = await phanHoi.json();
+                const chuyenCuoi = duLieu.value; // Tiếng Anh bắt buộc từ API
+                hienThiTinNhan(`😂 **Chuyen cuoi:**\n${chuyenCuoi}`, 'bot');
+            } catch (loi) {
+                hienThiTinNhan(`**⚠️ LOI KET NOI:** Khong the ke chuyen cuoi. (Loi: ${loi.message})`, 'bot');
             }
             return true;
         }
 
-        return false; // Không phải lệnh
+        return false;
     }
 
     // 5. Xử lý Tin nhắn
-    async function sendMessage() {
-        const inputField = document.getElementById('user-input');
-        const text = inputField.value.trim();
-        if (!text) return;
+    async function guiTinNhan() { // Đổi tên hàm
+        const oNhap = document.getElementById('user-input'); // Đổi tên biến
+        const chuoi = oNhap.value.trim();
+        if (!chuoi) return;
 
-        appendMessage(text, 'user');
-        inputField.value = '';
+        hienThiTinNhan(chuoi, 'user');
+        oNhap.value = '';
 
-        // Kiểm tra xem có phải lệnh không
-        const isCommand = await handleCommand(text);
-        if (isCommand) return;
+        const laLenh = await xuLyLenh(chuoi); // Đổi tên biến
+        if (laLenh) return;
 
-        // Tìm kiếm câu trả lời
-        const key = text.toLowerCase();
-        if (knowledge[key]) {
-            setTimeout(() => appendMessage(knowledge[key], 'bot'), 500);
+        // Tim kiem cau tra loi
+        const khoaHoi = chuoi.toLowerCase(); // Đổi tên biến
+        if (boNho[khoaHoi]) {
+            setTimeout(() => hienThiTinNhan(boNho[khoaHoi], 'bot'), 500);
         } else {
-            // Tìm kiếm linh hoạt (nếu chứa từ khóa)
-            const found = Object.keys(knowledge).find(k => key.includes(k) || k.includes(key));
-            if (found && knowledge[found]) {
-                setTimeout(() => appendMessage(knowledge[found], 'bot'), 500);
+            // Tim kiem linh hoat
+            const timThay = Object.keys(boNho).find(k => khoaHoi.includes(k) || k.includes(khoaHoi)); // Đổi tên biến
+            if (timThay && boNho[timThay]) {
+                setTimeout(() => hienThiTinNhan(boNho[timThay], 'bot'), 500);
             } else {
-                setTimeout(() => appendMessage(`Tôi chưa biết về "**${text}**". Hãy dùng lệnh **!HOC ${text} = [Câu trả lời]** để dạy tôi nhé!`, 'bot'), 500);
+                setTimeout(() => hienThiTinNhan(`Toi chua biet ve "**${chuoi}**". Hay dung lenh **!HOC ${chuoi} = [Cau tra loi]** de day toi nhe!`, 'bot'), 500);
             }
         }
     }
 
     // Sự kiện Enter và Khởi động
     document.getElementById('user-input').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') sendMessage();
+        if (e.key === 'Enter') guiTinNhan();
     });
 
-    function resetChat() {
-        if(confirm("Xóa lịch sử và các bài học đã học?")) {
+    function taiLaiTrang() { // Đổi tên hàm
+        if(confirm("Xoa lich su va cac bai hoc da hoc?")) {
             localStorage.clear();
             location.reload();
         }
     }
 
     // Chạy khi mở trang
-    loadMemory();
-    loadKnowledge().then(() => {
-        appendMessage("👋 Xin chào! Nhập **!DANHGON** hoặc **!JOKE** để test mạng, hoặc **!HOC** để dạy tôi.", 'bot');
+    taiBoNhoLocal();
+    taiBoNhoFile().then(() => {
+        hienThiTinNhan("👋 Xin chao! Nhap **!DANHGON** hoac **!JOKE** de test mang, hoac **!HOC** de day toi.", 'bot');
     });
 
 </script>
