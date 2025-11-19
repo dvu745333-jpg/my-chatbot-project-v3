@@ -118,6 +118,7 @@
                 })
                 .catch(error => {
                     console.error("Lỗi tải kiến thức:", error);
+                    // Thông báo lỗi nếu knowledge.json bị lỗi
                     appendMessage(`⚠️**LỖI:** Không thể tải hoặc phân tích file **knowledge.json**. Vui lòng kiểm tra file đã tồn tại và đúng định dạng JSON chưa. (Sử dụng kiến thức gốc).`, 'bot');
                     return false;
                 });
@@ -204,7 +205,7 @@
                     break;
 
                 case '!DANHGON':
-                    // API Danh Ngôn mới, đã sửa lỗi và hoạt động ổn định
+                    // API Danh Ngôn mới (https://api.quotable.io/random) đã được cập nhật để khắc phục lỗi 'Failed to fetch'
                     appendMessage(`⏳ Đang kết nối Internet...`, 'bot');
                     fetch('https://api.quotable.io/random')
                         .then(response => {
