@@ -78,9 +78,11 @@
         if (upperInput === '!DANHGON') {
             appendMessage("⏳ Đang tải danh ngôn từ Internet...", 'bot');
             try {
-                const res = await fetch('https://dummyjson.com/quotes/random'); // API Mới
+                const res = await fetch('https://dummyjson.com/quotes/random'); // API Mới, ổn định
                 const data = await res.json();
-                appendMessage(`💡 **Danh ngôn:**\n"${data.quote}"\n— *${data.author}*`, 'bot');
+                const quoteText = data.quote; 
+                const author = data.author; 
+                appendMessage(`💡 **Danh ngôn:**\n"${quoteText}"\n— *${author}*`, 'bot');
             } catch (e) {
                 appendMessage(`❌ Lỗi kết nối: ${e.message}`, 'bot error-msg');
             }
@@ -99,6 +101,20 @@
             localStorage.setItem(key, value); // Lưu vĩnh viễn
             knowledge[key] = value;
             appendMessage(`✅ Đã học: **"${key}"**`, 'bot');
+            return true;
+        }
+
+        // Lệnh !JOKE (Kể chuyện cười)
+        if (upperInput === '!JOKE') {
+            appendMessage(`⏳ Đang tìm kiếm chuyện cười...`, 'bot');
+            try {
+                const response = await fetch('https://api.chucknorris.io/jokes/random');
+                const data = await response.json();
+                const jokeText = data.value; 
+                appendMessage(`😂 **CHUYỆN CƯỜI:**\n${jokeText}`, 'bot');
+            } catch (error) {
+                appendMessage(`**⚠️ LỖI KẾT NỐI:** Không thể kể chuyện cười. (Lỗi: ${error.message})`, 'bot');
+            }
             return true;
         }
 
@@ -139,7 +155,7 @@
     });
 
     function resetChat() {
-        if(confirm("Xóa lịch sử?")) {
+        if(confirm("Xóa lịch sử và các bài học đã học?")) {
             localStorage.clear();
             location.reload();
         }
@@ -148,7 +164,7 @@
     // Chạy khi mở trang
     loadMemory();
     loadKnowledge().then(() => {
-        appendMessage("👋 Xin chào! Nhập **!DANHGON** để test mạng hoặc **!HOC** để dạy tôi.", 'bot');
+        appendMessage("👋 Xin chào! Nhập **!DANHGON** hoặc **!JOKE** để test mạng, hoặc **!HOC** để dạy tôi.", 'bot');
     });
 
 </script>
