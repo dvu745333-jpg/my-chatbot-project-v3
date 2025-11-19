@@ -33,25 +33,25 @@
 </div>
 
 <script>
-    let boNho = {}; // Đổi tên biến kiến thức thành "boNho"
+    let boNho = {}; 
 
     // 1. Tải kiến thức từ file knowledge.json
-    async function taiBoNhoFile() { // Đổi tên hàm thành "taiBoNhoFile"
+    async function taiBoNhoFile() { 
         try {
-            const phanHoi = await fetch('knowledge.json'); // Đổi tên biến
+            const phanHoi = await fetch('knowledge.json'); 
             if (!phanHoi.ok) throw new Error("Khong tim thay file");
-            const duLieu = await phanHoi.json(); // Đổi tên biến
+            const duLieu = await phanHoi.json(); 
             boNho = { ...boNho, ...duLieu };
             console.log("Da tai knowledge.json");
-        } catch (loi) { // Đổi tên biến
+        } catch (loi) { 
             hienThiTinNhan(`⚠️ **Luu y:** Khong tai duoc file 'knowledge.json'. Bot se dung kien thuc ban day thu cong.`, 'bot error-msg');
         }
     }
 
     // 2. Tải kiến thức đã dạy (Local Storage)
-    function taiBoNhoLocal() { // Đổi tên hàm
+    function taiBoNhoLocal() { 
         for (let i = 0; i < localStorage.length; i++) {
-            const khoa = localStorage.key(i); // Đổi tên biến
+            const khoa = localStorage.key(i); 
             if (!khoa.startsWith('chat_history')) {
                 boNho[khoa] = localStorage.getItem(khoa);
             }
@@ -61,7 +61,7 @@
     // 3. Giao diện Chat
     const chatWindow = document.getElementById('chat-window');
     
-    function hienThiTinNhan(chuoi, nguoiGui) { // Đổi tên hàm
+    function hienThiTinNhan(chuoi, nguoiGui) { 
         const div = document.createElement('div');
         div.className = `message ${nguoiGui}`;
         div.innerHTML = chuoi.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
@@ -70,8 +70,8 @@
     }
 
     // 4. Xử lý Lệnh
-    async function xuLyLenh(dauVao) { // Đổi tên hàm
-        const lenhInHoa = dauVao.toUpperCase(); // Đổi tên biến
+    async function xuLyLenh(dauVao) { 
+        const lenhInHoa = dauVao.toUpperCase(); 
 
         // Lệnh !DANHGON
         if (lenhInHoa === '!DANHGON') {
@@ -79,8 +79,8 @@
             try {
                 const res = await fetch('https://dummyjson.com/quotes/random');
                 const duLieu = await res.json();
-                const danhNgon = duLieu.quote; // Tiếng Anh bắt buộc từ API
-                const tacGia = duLieu.author; // Tiếng Anh bắt buộc từ API
+                const danhNgon = duLieu.quote; // BAT BUOC phai la quote (API)
+                const tacGia = duLieu.author; // BAT BUOC phai la author (API)
                 hienThiTinNhan(`💡 **Danh ngon:**\n"${danhNgon}"\n— *${tacGia}*`, 'bot');
             } catch (loi) {
                 hienThiTinNhan(`❌ Loi ket noi: ${loi.message}`, 'bot error-msg');
@@ -90,7 +90,7 @@
 
         // Lệnh !HOC
         if (lenhInHoa.startsWith('!HOC')) {
-            const mangPhanChia = dauVao.substring(4).split('='); // Đổi tên biến
+            const mangPhanChia = dauVao.substring(4).split('='); 
             if (mangPhanChia.length < 2) {
                 hienThiTinNhan("⚠️ Sai cu phap. Dung: !HOC Cau hoi = Cau tra loi", 'bot');
                 return true;
@@ -109,7 +109,7 @@
             try {
                 const phanHoi = await fetch('https://api.chucknorris.io/jokes/random');
                 const duLieu = await phanHoi.json();
-                const chuyenCuoi = duLieu.value; // Tiếng Anh bắt buộc từ API
+                const chuyenCuoi = duLieu.value; // BAT BUOC phai la value (API)
                 hienThiTinNhan(`😂 **Chuyen cuoi:**\n${chuyenCuoi}`, 'bot');
             } catch (loi) {
                 hienThiTinNhan(`**⚠️ LOI KET NOI:** Khong the ke chuyen cuoi. (Loi: ${loi.message})`, 'bot');
@@ -121,24 +121,24 @@
     }
 
     // 5. Xử lý Tin nhắn
-    async function guiTinNhan() { // Đổi tên hàm
-        const oNhap = document.getElementById('user-input'); // Đổi tên biến
+    async function guiTinNhan() { 
+        const oNhap = document.getElementById('user-input'); 
         const chuoi = oNhap.value.trim();
         if (!chuoi) return;
 
         hienThiTinNhan(chuoi, 'user');
         oNhap.value = '';
 
-        const laLenh = await xuLyLenh(chuoi); // Đổi tên biến
+        const laLenh = await xuLyLenh(chuoi); 
         if (laLenh) return;
 
         // Tim kiem cau tra loi
-        const khoaHoi = chuoi.toLowerCase(); // Đổi tên biến
+        const khoaHoi = chuoi.toLowerCase(); 
         if (boNho[khoaHoi]) {
             setTimeout(() => hienThiTinNhan(boNho[khoaHoi], 'bot'), 500);
         } else {
             // Tim kiem linh hoat
-            const timThay = Object.keys(boNho).find(k => khoaHoi.includes(k) || k.includes(khoaHoi)); // Đổi tên biến
+            const timThay = Object.keys(boNho).find(k => khoaHoi.includes(k) || k.includes(khoaHoi)); 
             if (timThay && boNho[timThay]) {
                 setTimeout(() => hienThiTinNhan(boNho[timThay], 'bot'), 500);
             } else {
@@ -152,7 +152,7 @@
         if (e.key === 'Enter') guiTinNhan();
     });
 
-    function taiLaiTrang() { // Đổi tên hàm
+    function taiLaiTrang() { 
         if(confirm("Xoa lich su va cac bai hoc da hoc?")) {
             localStorage.clear();
             location.reload();
